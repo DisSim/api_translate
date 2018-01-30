@@ -1,4 +1,5 @@
 var doc_set = [] // global document
+// TODO it's modifying this, is that ok?
 var global_rules = "";
 
 function load_docs(doc_src, done_cb) {
@@ -38,7 +39,7 @@ function resolve_key(input, rules) {
         doc = input;
         ruleset = rules.slice(1);
     } else {
-        doc = ruleset;
+        doc = doc_set;
         ruleset = rules;
     }
     for (var rule in ruleset) {
@@ -53,7 +54,6 @@ function resolve_key(input, rules) {
         // otherwise, just access using the rule
         else {
             doc = doc[rules[rule]];
-            console.log('num')
         }
     }
     return doc;
@@ -91,41 +91,26 @@ function group(first, second, key, as) {
 }
 
 function render(input, rule) {
+    output = [];
     if (!rule) {
         return input;
     }
+    // may want to rename rule fields, these are confusing
     if (rule.type === "join") {
-        let section = resolve_key(input, rule.key);
+        let section = resolve_key(input, rule.key.slice(0, -1));
         let secondary = resolve_key(input, rule.on);
-        return render(join(section, secondary, rule.key), rule.output);
+        return render(join(section, secondary, rule.key.slice(-1)[0]), rule.output);
     } else if (rule.type === "group") {
-        let section = resolve_key(input, rule.key);
+        let section = resolve_key(input, rule.key.slice(0, -1));
         let secondary = resolve_key(input, rule.on);
-        return render(group(section, secondary, rule.key, rule.as), rule.output);
+        return render(group(section, secondary, rule.key.slice(-1)[0], rule.as), rule.output);
     } else if (rule.type === "select") {
         let section = resolve_key(input, rule.key);
         return (render(section, rule.output))
-    } else if (rule.type === "calculate") {
-        // what operation?
-        let section = resolve_key(input, rule.key);
-        var operations = {
-            sum: (a, b) => a + b,
-            max: (a, b) => (a > b) ? a : b,
-            min: (a, b) => (a > b) ? b : a
-        }
-        if (rule.operation === "average") {
-            result = [];
-            for (var subsection in section) {
-                output.push(subsection.map(sum) / subsection.length);
-            }
-        } else if (rule.operation === "count") {
-            result = [];
-            for (var subsection in section) {
-                output.push(subsection.length);
-            }
-        } else {
-            output = section.map(operations[rule.operation]);
-        }
+    }
+    // TODO do we want to re-add calculate
+    else {
+        console.warn("rule type specified is not implemented")
     }
     return output;
 }
